@@ -7,68 +7,83 @@
 
 <h2>Danh sách sinh viên</h2>
 
-<a asp-action="Create" asp-controller="Student" class="btn btn-primary">Create Student</a>
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Mã</th>
-            <th>Họ tên</th>
-            <th>Ngày sinh</th>
-            <th>Ngành</th>
-            <th>Giới tính</th>
-            <th>Hệ ĐT</th>
-            <th>Địa chỉ</th>
-            <th>Email</th>
+<div class="row mb-3">
 
-            <th>Hành động</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var s in Model)
-        {
-            <tr>
-                <td>@s.Id</td>
-                <td>@s.Name</td>
-                <td>@(s.DateOfBorth.ToShortDateString())</td>
+    <!-- COMBOBOX LỌC NGÀNH -->
+    <div class="col-md-3">
+        <select id="branchFilter" class="form-select">
+            <option value="">-- Tất cả ngành --</option>
+            @foreach (var b in ViewBag.Branches)
+            {
+                <option value="@b.Value">@b.Text</option>
+            }
+        </select>
+    </div>
 
-                @{
-                    string str = "";
-                    switch (s.Branch)
-                    {
-                        case Branch.IT:
-                            str = "CNTT";
-                            break;
-                        case Branch.BE:
-                            str = "Kinh tế";
-                            break;
-                        case Branch.CE:
-                            str = "Công trình";
-                            break;
-                        case Branch.EE:
-                            str = "Điện - Điện tử";
-                            break;
-                    }
-                }
-                <td>@str</td>
-                <td>@(s.Gender == Gender.Male ? "Nam" : "Nữ")</td>
-                <td>@(s.IsRegular ? "Chính quy" : "Phi chính quy")</td>
-                <td>@s.Address</td>
-                <td>@s.Email</td>
+    <!-- Ô TÌM KIẾM -->
+    <div class="col-md-4">
+        <input id="keywordSearch" type="text" class="form-control" placeholder="Tìm theo tên..." />
+    </div>
 
-                <td>
-                    <a asp-action="Edit" asp-controller="Student" asp-route-id="@s.Id" class="btn btn-warning btn-sm">Sửa</a>
-                    <a asp-action="Details" asp-controller="Student" asp-route-id="@s.Id" class="btn btn-info btn-sm">Chi tiết</a>
-                    <a asp-action="Delete" asp-controller="Student" asp-route-id="@s.Id" class="btn btn-danger btn-sm">Xóa</a>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+    <div class="col-md-2">
+        <button id="btnSearch" class="btn btn-primary">Tìm kiếm</button>
+    </div>
+
+    <div class="col-md-3 text-end">
+        <a asp-action="Create" asp-controller="Student" class="btn btn-success">
+            + Tạo sinh viên
+        </a>
+    </div>
+</div>
+
+<!-- NỘI DUNG AJAX -->
+<div id="divContent">
+    @await Html.PartialAsync("StudentTable", Model)
+</div>
+
 @section Scripts {
     <script>
-        var table = document.querySelector("table");
-        table.onclick = function onTableClick() {
-             table.style = "background-color: yellow;";
-        }
+
+        // PHÂN TRANG
+        $('body').on('click', '.page-item', function () {
+            let page = $(this).attr('page');
+            let keyword = $('#keywordSearch').val();
+            let branch = $('#branchFilter').val();
+
+            $.ajax({
+                url: '/Student/StudentFilter',
+                data: { keyword: keyword, branch: branch, pageIndex: page },
+                success: function (res) {
+                    $('#divContent').html(res);
+                }
+            });
+        });
+
+        // LỌC NGÀNH
+        $('#branchFilter').change(function () {
+            let branch = $(this).val();
+
+            $.ajax({
+                url: '/Student/StudentFilter',
+                data: { branch: branch },
+                success: function (res) {
+                    $('#divContent').html(res);
+                }
+            });
+        });
+
+        // TÌM KIẾM
+        $('#btnSearch').click(function () {
+            let keyword = $('#keywordSearch').val();
+
+            $.ajax({
+                url: '/Student/StudentFilter',
+                data: { keyword: keyword },
+                success: function (res) {
+                    $('#divContent').html(res);
+                }
+            });
+        });
+
     </script>
 }

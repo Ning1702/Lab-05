@@ -8,6 +8,7 @@ namespace LTW_Lab01.Controllers
 {
     public class StudentController : Controller
     {
+        private int pageSize = 3; // số dòng mỗi trang
 
         private static List<Student> listStudents = new List<Student>()
         {
@@ -24,9 +25,57 @@ namespace LTW_Lab01.Controllers
             _webHostEnvironment = webHostEnvironment;
         }
 
-        public ActionResult Index()
+        // ===================== INDEX ===========================
+        public IActionResult Index()
         {
-            return View(listStudents);
+            // gửi danh sách ngành sang view
+            ViewBag.Branches = Enum.GetValues(typeof(Branch))
+                                   .Cast<Branch>()
+                                   .Select(b => new SelectListItem()
+                                   {
+                                       Text = b.ToString(),
+                                       Value = b.ToString()
+                                   })
+                                   .ToList();
+
+            // trang mặc định
+            var result = listStudents.Take(pageSize).ToList();
+            ViewBag.pageNum = (int)Math.Ceiling(listStudents.Count() / (float)pageSize);
+
+            return View(result);
+        }
+
+        // =============== FILTER (AJAX) =======================
+        public IActionResult StudentFilter(string? keyword, string? branch, int? pageIndex)
+        {
+            IEnumerable<Student> students = listStudents;
+
+            int page = pageIndex ?? 1;
+
+            // lọc ngành
+            if (!string.IsNullOrEmpty(branch))
+            {
+                if (Enum.TryParse(branch, out Branch selected))
+                {
+                    students = students.Where(s => s.Branch == selected);
+                    ViewBag.branch = branch;
+                }
+            }
+
+            // tìm kiếm tên
+            if (!string.IsNullOrEmpty(keyword))
+            {
+                students = students.Where(s => s.Name!.ToLower().Contains(keyword.ToLower()));
+                ViewBag.keyword = keyword;
+            }
+
+            // phân trang
+            int pageNum = (int)Math.Ceiling(students.Count() / (float)pageSize);
+            ViewBag.pageNum = pageNum;
+
+            students = students.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+            return PartialView("StudentTable", students);
         }
 
         [HttpGet]
